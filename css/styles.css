@@ -82,6 +82,7 @@ div.subtitle {
     height: 100%;
     min-height: 100%;
     overflow-x: hidden;
+    margin-left: 5px;
     overflow-y: auto;
     border-right: 1px solid #aaa;
     position: relative;

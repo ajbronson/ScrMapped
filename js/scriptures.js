@@ -21,6 +21,7 @@ let Scriptures = (function () {
     let requestedNextPrev;
     let volumeArray;
     let map;
+    var markersArray = [];
 
     /*--------------------------------------------------
     PRIVATE METHODS
@@ -94,74 +95,24 @@ let Scriptures = (function () {
         }
     }
 
-
-
-
-
-
-
-
-
-
-
-
-    function initializeMap(vetor) {
-      //Set Default location is Jerusalem
-      var defaultLocation = new google.maps.LatLng(31.7683, 35.2137);
-      var configureMap = {
-        center: defaultLocation,
-        tilt: 50,
-        zoom: 5,
-        mapTypeId: 'terrain',
-      }
-
-      if (map === undefined || map == null)
-      {
-        map = new google.maps.Map(document.getElementById("map"), configureMap);
-      }
-
-    if(vetor){
-        var myLatlng = new google.maps.LatLng(vetor[3],vetor[2]);
-        var mapOptions = {
-          zoom: 10,
+    function initializeMap() {
+        //Set the default location to Jerusalem
+        var defaultLocation = new google.maps.LatLng(31.7683, 35.2137);
+        var configureMap = {
+          center: defaultLocation,
+          tilt: 50,
+          zoom: 5,
           mapTypeId: 'terrain',
-          center: myLatlng,
-          tilt: 45
         }
-        map = new google.maps.Map(document.getElementById("map"), mapOptions);
-        var marker = new google.maps.Marker({
-            position: myLatlng,
-            draggable: true,
-            animation: google.maps.Animation.DROP,
-            title:vetor[1]
-        });
 
-        marker.setMap(map);
-
-        var mapLabel = new MapLabel({
-          text: vetor[1], //name of local
-          position: new google.maps.LatLng(vetor[3],vetor[2]), //coordinates
-          map: map,
-          fontSize: 20,
-          align: 'center'
-        });
-        //mapLabel.set('position', new google.maps.LatLng(vetor[3],vetor[2]));
-
-        map.panTo({lat: vetor[3],lng: vetor[2]});
-        map.setZoom(Math.round(vetor[8] / 500))
-
+        if (map === undefined || map == null)
+        {
+            map = new google.maps.Map(document.getElementById("map"), configureMap);
+        }
     }
 
 
-    // eventhandler to when user drags the marker
-    (function (marker) {
-            google.maps.event.addListener(marker, "dragend", function (e) {
-                sugest(marker,vetor);
-            });
-    })(marker);
 
-
-}
 
 function SendSugestion(){
     let hashURL = window.location.hash.substr(0).split(':');
@@ -217,92 +168,85 @@ function sugest(marker,vetor){
         });
     }
 
-
-
-
-
-
 }
 
-function showLocation (a, b, d, c, e, g, h, l, k) {
-    let vetor = [];
-    vetor.push(a);
-    vetor.push(b);
-    vetor.push(c);
-    vetor.push(d);
-    vetor.push(e);
-    vetor.push(g);
-    vetor.push(h);
-    vetor.push(l);
-    vetor.push(k);
-    initializeMap(vetor)
-
-}
-
-
-
-function loadMarkers(){
-    //if we don't have a map yet, create new map object
-    if (map === undefined || map == null)
-    {
-      initializeMap();
+    function showLocation (a, b, d, c, e, g, h, l, k) {
+        let vetor = [];
+        vetor.push(a);
+        vetor.push(b);
+        vetor.push(c);
+        vetor.push(d);
+        vetor.push(e);
+        vetor.push(g);
+        vetor.push(h);
+        vetor.push(l);
+        vetor.push(k);
+        initializeMap();
     }
 
+    function displayMarkersForScripture(){
+        //if we don't have a map yet, create new map object
+        if (map === undefined || map == null)
+        {
+          initializeMap();
+        }
 
-    var bounds = new google.maps.LatLngBounds();
-    let locationsToMark = $('a[onclick^="showLocation("]');
+        let locationsToMark = $('a[onclick^="showLocation("]');
+        setMarkers(locationsToMark);
+    }
 
+    function setMarkers(locations) {
 
-    map.addListener('bounds_changed', function() {
-        window.currentZoom = map.getZoom();
-        window.currentLat = map.getCenter().lat();
-        window.currentLng = map.getCenter().lng();
+        clearAllMarkers();
+        var mapBounds = new google.maps.LatLngBounds();
 
-    });
+        for (var count = 0; count < locations.length; count++) {
+          let locationRecord = (locations[count].getAttribute("onclick")).split(',');
+          let title = locationRecord[1];
+          let latitude = locationRecord[2];
+          let longitude = locationRecord[3];
 
-    for (var count = 0; count < locationsToMark.length; count++) {
-        let coordinates = (locationsToMark[count].getAttribute("onclick")).split(',');
+          //marker record
+          let newMarker = new google.maps.Marker({
+              map: map,
+              position: new google.maps.LatLng(latitude, longitude),
+              animation: google.maps.Animation.DROP
+          });
 
-        let marker = new google.maps.Marker({
+          //add marker to array, allowing us to keep track
+          //of it to clear it when we need to
+          markersArray.push(newMarker);
+
+          //title for marker
+          let locationTitle = new MapLabel({
+            text: title.replace(/['"]+/g, ''),
+            position: new google.maps.LatLng(latitude, longitude),
             map: map,
-            position: new google.maps.LatLng(coordinates[2],coordinates[3]),
-            animation: google.maps.Animation.DROP
-        });
+            fontSize: 15,
+            align: 'center'
+          });
 
-        let mapLabel = new MapLabel({
-          text: coordinates[1].replace(/['"]+/g, ''), //name of local
-          position: new google.maps.LatLng(coordinates[2],coordinates[3]), //coordinates
-          map: map,
-          fontSize: 20,
-          align: 'right'
-        });
+          mapBounds.extend(newMarker.getPosition());
+        }
 
-        bounds.extend(marker.getPosition());
+        zoomToAllMarkers(mapBounds);
     }
 
+    function zoomToAllMarkers(inBounds) {
+        map.fitBounds(inBounds);
 
-    //center the map to the geometric center of all markers
-    map.fitBounds(bounds);
-    map.setZoom(map.getZoom()-1);
-
-    // set a minimum zoom
-    // if you got only 1 marker or all markers are on the same address map will be zoomed too much.
-    if(map.getZoom()> 10){
-        map.setZoom(10);
+        if (map.getZoom() > 15) {
+          map.setZoom(15);
+        }
     }
 
+    function clearAllMarkers() {
+        for (var count = 0; count < markersArray.length; count++ ) {
+          markersArray[count].setMap(null);
+        }
 
-
-}
-
-
-
-
-
-
-
-
-
+        markersArray.length = 0;
+    }
 
     function transitionCrossfade(newContent, property, parentSelector, childSelector){
          if (animatingElements.hasOwnProperty(property+"In") || animatingElements.hasOwnProperty(property+"Out")) {
@@ -336,7 +280,7 @@ function loadMarkers(){
                  duration: ANIMATION_DURATION,
                  complete: function(){
                      delete animatingElements[property+"In"];
-                     loadMarkers();
+                     displayMarkersForScripture();
                  }
              });
          } else {
@@ -448,14 +392,11 @@ function loadMarkers(){
                 requestedNextPrev = "<a href=\"javascript:void(0);\" onclick=\"Scriptures.hash(0, "+nextPrev[0]+", "+nextPrev[1]+")\" title=\""+nextPrev[2]+"\"><i class=\"material-icons\">skip_previous</i></a>";
             }
 
-
             nextPrev = nextChapter(bookID,chapter);
 
             if(nextPrev!==undefined){
                 requestedNextPrev +="<a href=\"javascript:void(0);\" onclick=\"Scriptures.hash(0, "+nextPrev[0]+", "+nextPrev[1]+")\" title=\""+nextPrev[2]+"\"><i class=\"material-icons\">skip_next</i></a>";
             }
-
-
 
             $.ajax({
                "url": encodedScriptureUrlParameters(bookID, chapter),
@@ -523,7 +464,6 @@ function loadMarkers(){
         },
 
         init(callback) {
-
           let booksLoaded = false;
           let volumesLoaded = false;
 
@@ -560,6 +500,33 @@ function loadMarkers(){
               }
             }
           });
+        },
+
+        suggestionButtonTapped() {
+          let selection =  window.getSelection().toString();
+          if ( selection === undefined || selection == null || selection == '')
+          {
+              //TODO: Let the user know they need to select something.
+              console.log("You have nothing selected");
+              return;
+          }
+
+          console.log("You have selected " + selection);
+
+        },
+
+        showLocation(a, b, d, c, e, g, h, l, k) {
+            let vetor = [];
+            vetor.push(a);
+            vetor.push(b);
+            vetor.push(c);
+            vetor.push(d);
+            vetor.push(e);
+            vetor.push(g);
+            vetor.push(h);
+            vetor.push(l);
+            vetor.push(k);
+            initializeMap();
         },
 
         onHashChanged() {
