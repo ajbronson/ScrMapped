@@ -106,6 +106,20 @@ let Scriptures = (function () {
 
 
     function initializeMap(vetor) {
+      //Set Default location is Jerusalem
+      var defaultLocation = new google.maps.LatLng(31.7683, 35.2137);
+      var configureMap = {
+        center: defaultLocation,
+        tilt: 50,
+        zoom: 5,
+        mapTypeId: 'terrain',
+      }
+
+      if (map === undefined || map == null)
+      {
+        map = new google.maps.Map(document.getElementById("map"), configureMap);
+      }
+
     if(vetor){
         var myLatlng = new google.maps.LatLng(vetor[3],vetor[2]);
         var mapOptions = {
@@ -128,8 +142,8 @@ let Scriptures = (function () {
           text: vetor[1], //name of local
           position: new google.maps.LatLng(vetor[3],vetor[2]), //coordinates
           map: map,
-          fontSize: 40,
-          align: 'right'
+          fontSize: 20,
+          align: 'center'
         });
         //mapLabel.set('position', new google.maps.LatLng(vetor[3],vetor[2]));
 
@@ -228,25 +242,15 @@ function showLocation (a, b, d, c, e, g, h, l, k) {
 
 
 function loadMarkers(){
-    let coordinates;
-    //Default location is Jerusalem
-    var defaultLocation = new google.maps.LatLng(31.7683, 35.2137);
-    var configureMap = {
-      center: defaultLocation,
-      tilt: 50,
-      zoom: 5,
-      mapTypeId: 'terrain',
-    }
-
+    //if we don't have a map yet, create new map object
     if (map === undefined || map == null)
     {
-      //create new map object
-      
-      map = new google.maps.Map(document.getElementById("map"), configureMap);
+      initializeMap();
     }
-    let marker;
+
+
     var bounds = new google.maps.LatLngBounds();
-    let listVerses = $('a[onclick^="showLocation("]');
+    let locationsToMark = $('a[onclick^="showLocation("]');
 
 
     map.addListener('bounds_changed', function() {
@@ -256,24 +260,16 @@ function loadMarkers(){
 
     });
 
+    for (var count = 0; count < locationsToMark.length; count++) {
+        let coordinates = (locationsToMark[count].getAttribute("onclick")).split(',');
 
-    // Center to Jerusalem if no coordinates
-    if(listVerses.length<1){
-        return
-    }
-
-    for (var i=0;i<listVerses.length;i++){ // grabes the ULs
-        coordinates = (listVerses[i].getAttribute("onclick")).split(',');
-
-
-        marker = new google.maps.Marker({
+        let marker = new google.maps.Marker({
+            map: map,
             position: new google.maps.LatLng(coordinates[2],coordinates[3]),
-            title:coordinates[1].replace(/['"]+/g, ''),
-            animation: google.maps.Animation.DROP,
-            map: map
+            animation: google.maps.Animation.DROP
         });
 
-        var mapLabel = new MapLabel({
+        let mapLabel = new MapLabel({
           text: coordinates[1].replace(/['"]+/g, ''), //name of local
           position: new google.maps.LatLng(coordinates[2],coordinates[3]), //coordinates
           map: map,
